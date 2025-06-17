@@ -1,12 +1,15 @@
+from dotenv import load_dotenv
+import os
 import streamlit as st
 import google.generativeai as genai
 import requests
 from typing import List
 
-# === CONFIG ===
-GOOGLE_API_KEY = "AIzaSyBq2gHsfCJICo_KodUqWaal7929OeRzuQI"  # Replace with your actual Gemini API key
-SPOTIFY_CLIENT_ID = "eba7cff4235949e5bef32ce7548dbfc3"  # Replace with your Spotify Client ID
-SPOTIFY_CLIENT_SECRET = "17e8dc8308be4908b26f3a50fdd39d7a"  # Replace with your Spotify Secret
+load_dotenv()
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
