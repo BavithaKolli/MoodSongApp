@@ -12,7 +12,7 @@ SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 genai.configure(api_key=GOOGLE_API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
 languages = ["English", "Hindi", "Telugu", "Tamil"]
 
@@ -39,28 +39,38 @@ st.markdown("""
 
 import concurrent.futures
 
+import streamlit as st
+import random
+import concurrent.futures
+
+# Define your model beforehand
+# from google.generativeai import GenerativeModel
+# model = GenerativeModel('gemini-1.5-flash')
+
 def detect_mood(feeling: str) -> str:
-    prompt = f"The user says they feel: '{feeling}'. Detect the mood in one word (happy, sad, energetic, calm)."
+    prompt = f"The user says they feel: '{feeling}'. Detect the mood in ONE word (happy, sad, energetic, calm). Only respond with one of these words."
 
     def ask_genai():
-        response = model.generate_content(prompt, stream=True)
-        mood = ""
-        for chunk in response:
-            mood += chunk.text
-        return mood.strip().lower()
+        response = model.generate_content(prompt)  # no stream=True
+        return response.text.strip().lower()
 
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future = executor.submit(ask_genai)
-            mood = future.result(timeout=15)  # timeout in seconds
+            mood = future.result(timeout=10)  # timeout after 10 seconds
     except concurrent.futures.TimeoutError:
-        st.error("Gemini API is taking too long to respond. Please try again later.")
-        return "happy"
+        fallback_mood = random.choice(["happy", "sad", "energetic", "calm"])
+        st.warning(f"⏱️ Gemini API timed out. Using a random fallback mood: **{fallback_mood}**")
+        return fallback_mood
 
     for key in ["happy", "sad", "energetic", "calm"]:
         if key in mood:
             return key
-    return "happy"
+
+    fallback_mood = random.choice(["happy", "sad", "energetic", "calm"])
+    st.warning(f"🤔 Unable to detect mood reliably. Using random mood: **{fallback_mood}**")
+    return fallback_mood
+
 
 def get_spotify_token() -> str:
     try:
@@ -133,14 +143,13 @@ if st.button("🔍 Get Playlist") and feeling:
         token = get_spotify_token()
         st.write(f"✅ Token fetched: {'Yes' if token else 'No'}")
 
-        st.write("🔎 Searching for playlists...")
         playlist_data = search_spotify_playlists(mood, language, token)
 
         if playlist_data:
             st.subheader(f"🎧 Top {language} Playlists for a {mood} Mood")
             for playlist in playlist_data:
                 with st.container():
-                    st.markdown(f"<div class='playlist-card'><div class='title'>{playlist['title']}</div>", unsafe_allow_html=True)
+                    # st.markdown(f"<div class='playlist-card'><div class='title'>{playlist['title']}</div>", unsafe_allow_html=True)
                     if playlist['image']:
                         st.image(playlist['image'], width=300)
                     embed_spotify_player(playlist['url'])
