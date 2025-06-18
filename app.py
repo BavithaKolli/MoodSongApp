@@ -62,7 +62,7 @@ def search_spotify_playlists(mood: str, language: str, token: str) -> List[dict]
         return []
 
     headers = {"Authorization": f"Bearer {token}"}
-    query = f"{language} {mood} mood playlist"
+    query = f"{language} {mood} playlist"
     url = f"https://api.spotify.com/v1/search?q={query}&type=playlist&limit=5"
     response = requests.get(url, headers=headers)
 
