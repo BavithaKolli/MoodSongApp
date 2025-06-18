@@ -37,16 +37,29 @@ st.markdown("""
 
 # === FUNCTIONS ===
 
+import concurrent.futures
+
 def detect_mood(feeling: str) -> str:
     prompt = f"The user says they feel: '{feeling}'. Detect the mood in one word (happy, sad, energetic, calm)."
+
+    def ask_genai():
+        response = model.generate_content(prompt, stream=True)
+        mood = ""
+        for chunk in response:
+            mood += chunk.text
+        return mood.strip().lower()
+
     try:
-        response = model.generate_content(prompt)
-        mood = response.text.strip().lower()
-        for key in ["happy", "sad", "energetic", "calm"]:
-            if key in mood:
-                return key
-    except Exception as e:
-        st.error(f"❌ Gemini API error: {e}")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(ask_genai)
+            mood = future.result(timeout=15)  # timeout in seconds
+    except concurrent.futures.TimeoutError:
+        st.error("Gemini API is taking too long to respond. Please try again later.")
+        return "happy"
+
+    for key in ["happy", "sad", "energetic", "calm"]:
+        if key in mood:
+            return key
     return "happy"
 
 def get_spotify_token() -> str:
